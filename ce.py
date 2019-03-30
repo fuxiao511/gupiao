@@ -1,5 +1,5 @@
 from rqalpha.api import *
-
+import string
 import talib
 
 
@@ -7,6 +7,7 @@ import talib
 def init(context):
     context.s1 = "000001.XSHE"
     context.fin = sector("Financials")
+    print(context.fin)
 #    context.fin = all_instruments("CS")
     # 设置这个策略当中会用到的参数，在策略中可以随时调用，这个策略使用长短均线，我们在这里设定长线和短线的区间，在调试寻找最佳区间的时候只需要在这里进行数值改动
     context.SHORTPERIOD = 20
@@ -16,7 +17,6 @@ def init(context):
     context.maxorder = 0
 
 def before_trading(context):
-    print(context.fin)
     context.sellout = 0
     prices = {}
     short_avg = {}
@@ -26,23 +26,20 @@ def before_trading(context):
         prices[order] = history_bars(order, context.LONGPERIOD+1, '1d', 'close')
         short_avg[order] = talib.SMA(prices[order], context.SHORTPERIOD)
         long_avg[order] = talib.SMA(prices[order], context.LONGPERIOD)
-    print(prices)
     for order in context.fin:
       if instruments(order).days_from_listed() > 130:
-        print("order: " + order)
         if short_avg[order][-1] - long_avg[order][-1] > 0 and short_avg[order][-2] - long_avg[order][-2] < 0:
             slope = short_avg[order][-1] - long_avg[order][-1] - (short_avg[order][-2] - long_avg[order][-2])
             print("slope: ")
             print(slope)
-            if slope > context.maxslope:
+            if order == context.curorder:
+                context.sellout = 0
+                return
+            if slope > context.maxslope and slope > 0.1:
                 context.maxslope = slope
                 context.maxorder = order
-                print(order)
-        else:
-            if order == context.curorder:
+                print("order: " + order)
                 context.sellout = 1
-
-    pass
 
 
 # 你选择的证券的数据更新将会触发此段逻辑，例如日或分钟历史数据切片或者是实时数据切片更新
@@ -56,15 +53,15 @@ def handle_bar(context, bar_dict):
     # TODO: 开始编写你的算法吧！
 
 
-    print("context")
-    print(context.curorder)
-    print(context.maxorder)
-    if context.curorder:
+    if context.sellout and context.curorder != 0:
+        print("sellout: " + str(context.curorder))
         order_target_value(context.curorder, 0)
     # 计算现在portfolio中的现金可以购买多少股票
-    if context.maxorder:
+    if context.maxorder and context.sellout == 1:
         shares = context.portfolio.cash / bar_dict[context.maxorder].close
 
+        print("cash: " + str(context.portfolio.cash) + " buy: " + context.maxorder)
+        print(shares)
         order_shares(context.maxorder, shares)
         context.curorder = context.maxorder
 #    if context.maxorder:
