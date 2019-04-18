@@ -1,6 +1,10 @@
 from rqalpha.api import *
 import string
 import talib
+import sys 
+import os
+sys.path.append("/home/wl/oneb/") 
+from macd import *
 
 def trim_order(orders):
     neworders = []
@@ -11,52 +15,42 @@ def trim_order(orders):
 
 
 def init(context):
-    context.fin = sector("Financials")
+    context.stock = sector("Financials")
 #    context.fin = all_instruments("CS")
 
-    context.fin = trim_order(context.fin)
-    print(context.fin)
+    context.stock = trim_order(context.stock)
+    print(context.stock)
 
     context.SHORTPERIOD = 20
     context.LONGPERIOD = 120
     context.curorder = 0
     context.planorder = 0
-def macdslope(short_avg, long_avg, order):
-    return short_avg[order][-1] - long_avg[order][-1] - (short_avg[order][-2] - long_avg[order][-2])
 
-
-def macd_trim(context):
+def first_trim(context):
     context.sellout = 0
     context.planorder = 0
     curorder = context.curorder
     curslope = 0
-    prices = {}
-    short_avg = {}
-    long_avg = {}
-    volume = {}
-    total_turnover = {}
-    for order in context.fin:
-        prices[order] = history_bars(order, context.LONGPERIOD+1, '1d', 'close')
-        volume[order] = history_bars(order, context.LONGPERIOD+1, '1d', 'volume')
-        total_turnover[order] = history_bars(order, context.LONGPERIOD+1, '1d', 'total_turnover')
-        short_avg[order] = talib.SMA(prices[order], context.SHORTPERIOD)
-        long_avg[order] = talib.SMA(prices[order], context.LONGPERIOD)
-    if curorder:
-        curslope = macdslope(short_avg, long_avg, curorder)
-    for order in context.fin:
-        if order == curorder:
-            if short_avg[order][-1] - long_avg[order][-1] < 0 and short_avg[order][-2] - long_avg[order][-2] > 0:
-                context.sellout = 1
-                print("before_trading: sellout")
-        elif short_avg[order][-1] - long_avg[order][-1] > 0 and short_avg[order][-2] - long_avg[order][-2] < 0:
-            slope = macdslope(short_avg, long_avg, order)
-            if slope > curslope and slope > 0.1:
-                print("slope: " + str(slope) + " order: " + order)
-                context.planorder = order
-                context.sellout = 1
-        
+    context.prices = {}
+    context.short_avg = {}
+    context.long_avg = {}
+    context.volume = {}
+    context.total_turnover = {}
+    context.fin = context.stock
+
+    for order in context.stock:
+        context.prices[order] = history_bars(order, context.LONGPERIOD+1, '1d', 'close')
+        context.volume[order] = history_bars(order, context.LONGPERIOD+1, '1d', 'volume')
+        context.total_turnover[order] = history_bars(order, context.LONGPERIOD+1, '1d', 'total_turnover')
+        context.short_avg[order] = talib.SMA(context.prices[order], context.SHORTPERIOD)
+        context.long_avg[order] = talib.SMA(context.prices[order], context.LONGPERIOD)
+	
+	
 def before_trading(context):
+    first_trim(context)
     macd_trim(context)
+    
+    macd_judge(context)
 
 def handle_bar(context, bar_dict):
     # bar_dict[order_book_id]
