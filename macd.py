@@ -1,8 +1,24 @@
 import string
 import talib
 
-def macdslope(short_avg, long_avg, order):
-    return short_avg[order][-1] - long_avg[order][-1] - (short_avg[order][-2] - long_avg[order][-2])
+def macdslope(context, order, day):
+    return context.short_avg[order][day] - context.long_avg[order][day] - (context.short_avg[order][day-1] - context.long_avg[order][day-1])
+    
+def macddif(context, order, day):
+    return context.short_avg[order][day] - context.long_avg[order][day]
+
+# range is [startperiod, endperiod)
+# bol means bigorlittle, bol>0 means bigger, bol<0 means smaller
+def macddiftrim(context, order, startperiod, endperiod, bol=1):
+    old = macddif(context, order, startperiod-1)
+    for i in range(startperiod, endperiod):
+        new = macddif(context, order, i)
+        if bol > 0 and new < old:
+            return False
+        elif bol < 0 and new > old:
+            return False
+        old = new
+    return True
 
 def macd_judge(context):
     context.sellout = 0
@@ -11,27 +27,26 @@ def macd_judge(context):
     curslope = 0
 
     if curorder:
-        curslope = macdslope(context.short_avg, context.long_avg, curorder)
+        curslope = macdslope(context, curorder, -1)
     for order in context.fin:
         if order == curorder:
-            if context.short_avg[order][-1] - context.long_avg[order][-1] < 0 and context.short_avg[order][-2] - context.long_avg[order][-2] > 0:
+            if macddiftrim(context, order, -2, 0, -1):
                 context.sellout = 1
                 print("before_trading: sellout")
-        elif context.short_avg[order][-1] - context.long_avg[order][-1] > 0 and context.short_avg[order][-2] - context.long_avg[order][-2] < 0:
-            slope = macdslope(context.short_avg, context.long_avg, order)
+        elif macddif(context, order, -1) > 0 and macddif(context, order, -2) < 0:
+            slope = macdslope(context, order, -1)
 
             if slope > curslope and slope > 0.1:
                 print("slope: " + str(slope) + " order: " + order)
-                context.sellout = 1
+                # context.sellout = 1
                 context.planorder = order
 
 def macd_trim(context):
-    context.newfin = []
+    context.tempfin = []
 
     for order in context.fin:
-        if context.short_avg[order][-1] - context.long_avg[order][-1] > 0 and context.short_avg[order][-2] - context.long_avg[order][-2] < 0:
-            slope = macdslope(context.short_avg, context.long_avg, order)
-            if slope > 0:
-                context.newfin.append(order)
+        if macddiftrim(context, order, -2, 0):
+            context.tempfin.append(order)
 
-    #context.fin = context.newfin
+    context.fin = context.tempfin
+    # print(len(context.fin))
