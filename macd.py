@@ -1,6 +1,12 @@
 import string
 import talib
+from rqalpha.utils.logger import user_log as log
 
+def getcurrentorder(context):
+    a = context.portfolio.stock_account.positions
+    # print("positions", a, type(a))
+    return a
+    
 def macdslope(context, order, day):
     return context.short_avg[order][day] - context.long_avg[order][day] - (context.short_avg[order][day-1] - context.long_avg[order][day-1])
     
@@ -13,33 +19,27 @@ def macddiftrim(context, order, startperiod, endperiod, bol=1):
     old = macddif(context, order, startperiod-1)
     for i in range(startperiod, endperiod):
         new = macddif(context, order, i)
-        if bol > 0 and new < old:
+        if bol > 0 and new <= old:
             return False
-        elif bol < 0 and new > old:
+        elif bol < 0 and new >= old:
             return False
         old = new
     return True
 
 def macd_judge(context):
-    context.sellout = 0
-    context.planorder = 0
-    curorder = context.curorder
-    curslope = 0
+    for order in getcurrentorder(context):
+        if macddiftrim(context, order, -2, 0, -1):
+            context.exe.append([order, "sell", 1])
+            log.info("before_trading: sell " + order)
 
-    if curorder:
-        curslope = macdslope(context, curorder, -1)
     for order in context.fin:
-        if order == curorder:
-            if macddiftrim(context, order, -2, 0, -1):
-                context.sellout = 1
-                print("before_trading: sellout")
-        elif macddif(context, order, -1) > 0 and macddif(context, order, -2) < 0:
+        if macddif(context, order, -1) > 0 and macddif(context, order, -2) < 0:
             slope = macdslope(context, order, -1)
 
-            if slope > curslope and slope > 0.1:
-                print("slope: " + str(slope) + " order: " + order)
-                # context.sellout = 1
-                context.planorder = order
+            if slope > 0.1:
+                log.info("slope: " + str(slope) + " order: " + order)
+                context.sellout = 1
+                context.exe.append([order, "buy", 1])
 
 def macd_trim(context):
     context.tempfin = []
