@@ -24,9 +24,21 @@ def trim_order(orders):
 
 
 def init(context):
-    context.stock = sector("Financials")
-#    context.fin = all_instruments("CS")
+    context.stock = []
+    context.stock.extend(sector("Financials"))
+    
+    context.stock.extend(sector("Energy"))
+    context.stock.extend(sector("Materials"))
+    context.stock.extend(sector("ConsumerDiscretionary"))
+    context.stock.extend(sector("ConsumerStaples"))
+    context.stock.extend(sector("HealthCare"))
+    context.stock.extend(sector("Financials"))
+    context.stock.extend(sector("InformationTechnology"))
+    context.stock.extend(sector("TelecommunicationServices"))
+    context.stock.extend(sector("Utilities"))
+    context.stock.extend(sector("Industrials"))
 
+    print(context.stock)
     context.stock = trim_order(context.stock)
     print(context.stock)
 
