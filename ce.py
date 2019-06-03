@@ -24,23 +24,23 @@ def trim_order(orders):
 
 
 def init(context):
-    context.stock = []
-    context.stock.extend(sector("Financials"))
+    context.stocks = []
+    context.stocks.extend(sector("Financials"))
     
-    context.stock.extend(sector("Energy"))
-    context.stock.extend(sector("Materials"))
-    context.stock.extend(sector("ConsumerDiscretionary"))
-    context.stock.extend(sector("ConsumerStaples"))
-    context.stock.extend(sector("HealthCare"))
-    context.stock.extend(sector("Financials"))
-    context.stock.extend(sector("InformationTechnology"))
-    context.stock.extend(sector("TelecommunicationServices"))
-    context.stock.extend(sector("Utilities"))
-    context.stock.extend(sector("Industrials"))
+    context.stocks.extend(sector("Energy"))
+    context.stocks.extend(sector("Materials"))
+    context.stocks.extend(sector("ConsumerDiscretionary"))
+    context.stocks.extend(sector("ConsumerStaples"))
+    context.stocks.extend(sector("HealthCare"))
+    context.stocks.extend(sector("Financials"))
+    context.stocks.extend(sector("InformationTechnology"))
+    context.stocks.extend(sector("TelecommunicationServices"))
+    context.stocks.extend(sector("Utilities"))
+    context.stocks.extend(sector("Industrials"))
 
-    print(context.stock)
-    context.stock = trim_order(context.stock)
-    print(context.stock)
+    print(context.stocks)
+    context.stocks = trim_order(context.stocks)
+    print(context.stocks)
 
     context.SHORTPERIOD = 20
     context.LONGPERIOD = 120
@@ -56,15 +56,15 @@ def before_trading_init(context):
     context.long_avg = {}
     context.volume = {}
     context.total_turnover = {}
-    context.fin = context.stock
+
     context.exe = []  #element must be a tuple of (order, "buy" or "sell", percent=0-1 )
 
-    for order in context.stock:
+    for order in context.stocks:
         context.prices[order] = history_bars(order, context.LONGPERIOD+1, '1d', 'close')
         context.volume[order] = history_bars(order, context.LONGPERIOD+1, '1d', 'volume')
         context.total_turnover[order] = history_bars(order, context.LONGPERIOD+1, '1d', 'total_turnover')
-        context.short_avg[order] = talib.SMA(context.prices[order], context.SHORTPERIOD)
-        context.long_avg[order] = talib.SMA(context.prices[order], context.LONGPERIOD)
+        context.short_avg[order] = talib.EMA(context.prices[order], context.SHORTPERIOD)
+        context.long_avg[order] = talib.EMA(context.prices[order], context.LONGPERIOD)
 	
 	
 def before_trading(context):
