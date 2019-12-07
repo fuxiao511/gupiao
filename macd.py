@@ -30,7 +30,7 @@ def macddiftrim(context, order, startperiod, endperiod, bol=1):
     return True
 
 def macd_judge(context):
-    for order in getcurrentorder(context):
+    for order in context.stocks:
         if macddiftrim(context, order, -2, 0, -1):
             context.exe.append([order, "sell", 1])
             log.info("before_trading: sell " + order)
