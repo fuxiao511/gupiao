@@ -57,7 +57,6 @@ def before_trading_init(context):
     context.volume = {}
     context.total_turnover = {}
 
-    context.exe = []  #element must be a tuple of (order, "buy" or "sell", percent=0-1 )
 
     for order in context.stocks:
         context.prices[order] = history_bars(order, context.LONGPERIOD+1, '1d', 'close')
